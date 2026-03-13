@@ -1,1 +1,1 @@
-# ChatPulse
+# ChatPulse - Real-time Chat App
