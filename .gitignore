@@ -1,3 +1,6 @@
 venv
 .opencode
 .entire
+.env
+.env.example
+node_modules
