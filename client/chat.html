@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatPulse - Chat</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="chat-app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Rooms</h2>
+        <button id="create-room-btn" class="icon-btn">+</button>
+      </div>
+      <div id="rooms-list" class="rooms-list"></div>
+    </aside>
+
+    <main class="chat-main">
+      <header class="chat-header">
+        <div class="room-info">
+          <h2 id="current-room-name">Select a room</h2>
+          <span id="online-count" class="online-count"></span>
+        </div>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+      </header>
+
+      <div id="messages-container" class="messages-container">
+        <div id="messages" class="messages"></div>
+        <div id="typing-indicator" class="typing-indicator hidden">
+          <span class="typing-dots">
+            <span></span><span></span><span></span>
+          </span>
+          <span id="typing-user"></span> is typing...
+        </div>
+      </div>
+
+      <footer class="chat-footer">
+        <input type="text" id="message-input" placeholder="Type a message..." disabled>
+        <button id="send-btn" class="send-btn" disabled>Send</button>
+      </footer>
+    </main>
+
+    <aside class="users-panel">
+      <h3>Online Users</h3>
+      <div id="online-users" class="online-users"></div>
+    </aside>
+  </div>
+
+  <div id="create-room-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Create Room</h3>
+      <form id="create-room-form">
+        <input type="text" id="room-name" placeholder="Room name" required maxlength="50">
+        <input type="text" id="room-description" placeholder="Description (optional)" maxlength="200">
+        <label class="checkbox-label">
+          <input type="checkbox" id="room-private">
+          Private room
+        </label>
+        <div class="modal-buttons">
+          <button type="button" id="cancel-room-btn" class="cancel-btn">Cancel</button>
+          <button type="submit" class="create-btn">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="http://localhost:5000/socket.io/socket.io.js"></script>
+  <script src="js/socket.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>
