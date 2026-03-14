@@ -26,6 +26,11 @@ const roomSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  invitationCode: {
+    type: String,
+    unique: true,
+    index: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
