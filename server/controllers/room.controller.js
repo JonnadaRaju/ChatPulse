@@ -43,7 +43,7 @@ const createRoom = async (req, res) => {
 
 const getRooms = async (req, res) => {
   try {
-    const rooms = await Room.find()
+    const rooms = await Room.find({ members: req.user._id })
       .populate('createdBy', 'username avatar _id')
       .populate('members', 'username avatar isOnline')
       .sort({ createdAt: -1 });
