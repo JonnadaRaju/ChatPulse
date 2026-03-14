@@ -20,13 +20,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('create-room-modal').classList.remove('hidden');
   });
 
+  document.getElementById('join-room-btn').addEventListener('click', () => {
+    document.getElementById('join-room-modal').classList.remove('hidden');
+  });
+
   document.getElementById('cancel-room-btn').addEventListener('click', () => {
     document.getElementById('create-room-modal').classList.add('hidden');
+  });
+
+  document.getElementById('cancel-join-btn').addEventListener('click', () => {
+    document.getElementById('join-room-modal').classList.add('hidden');
   });
 
   document.getElementById('create-room-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     await createRoom();
+  });
+
+  document.getElementById('join-room-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await joinRoomByCode();
+  });
+
+  document.getElementById('copy-invite-btn').addEventListener('click', () => {
+    const code = document.getElementById('invitation-code-display').textContent;
+    navigator.clipboard.writeText(code);
+    alert('Invitation code copied!');
+  });
+
+  document.getElementById('regenerate-invite-btn').addEventListener('click', async () => {
+    await regenerateInvitationCode();
   });
 
   document.getElementById('logout-btn').addEventListener('click', () => {
@@ -140,27 +163,46 @@ async function loadRooms() {
 function renderRooms(rooms) {
   const roomsList = document.getElementById('rooms-list');
   roomsList.innerHTML = '';
+  const user = JSON.parse(localStorage.getItem('user'));
 
   rooms.forEach(room => {
     const roomEl = document.createElement('div');
     roomEl.className = 'room-item';
     roomEl.dataset.roomId = room._id;
+    roomEl.dataset.isCreator = String(room.createdBy?._id || room.createdBy) === String(user.id);
     
     const memberCount = room.members ? room.members.length : 0;
+    const creatorId = room.createdBy ? room.createdBy._id : room.createdBy;
+    const isCreator = creatorId && String(creatorId) === String(user.id);
     
     roomEl.innerHTML = `
       <h3>${room.name}</h3>
       <p>${room.description || 'No description'} • ${memberCount} members</p>
+      ${isCreator ? '<button class="delete-room-btn">Delete</button>' : ''}
     `;
 
-    roomEl.addEventListener('click', () => joinRoom(room._id, room.name));
+    roomEl.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('delete-room-btn')) {
+        joinRoom(room._id, room.name, room.invitationCode);
+      }
+    });
+
+    const deleteBtn = roomEl.querySelector('.delete-room-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteRoom(room._id);
+      });
+    }
+
     roomsList.appendChild(roomEl);
   });
 }
 
-async function joinRoom(roomId, roomName) {
+async function joinRoom(roomId, roomName, invitationCode = null) {
   const token = localStorage.getItem('token');
   const socket = window.getSocket();
+  const user = JSON.parse(localStorage.getItem('user'));
 
   document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
   document.querySelector(`[data-room-id="${roomId}"]`)?.classList.add('active');
@@ -169,6 +211,36 @@ async function joinRoom(roomId, roomName) {
   document.getElementById('current-room-name').textContent = roomName;
   document.getElementById('message-input').disabled = false;
   document.getElementById('send-btn').disabled = false;
+
+  const inviteSection = document.getElementById('room-invite-section');
+  const inviteCodeDisplay = document.getElementById('invitation-code-display');
+  const regenerateBtn = document.getElementById('regenerate-invite-btn');
+
+  if (!invitationCode) {
+    try {
+      const response = await fetch(`${API_URL}/rooms`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      const room = data.rooms.find(r => r._id === roomId);
+      if (room) {
+        invitationCode = room.invitationCode;
+      }
+    } catch (error) {
+      console.error('Failed to get room details:', error);
+    }
+  }
+
+  const isCreator = document.querySelector(`[data-room-id="${roomId}"]`)?.dataset.isCreator === 'true' || 
+    (invitationCode && room && String(room.createdBy?._id || room.createdBy) === String(user.id));
+
+  if (isCreator && invitationCode) {
+    inviteSection.classList.remove('hidden');
+    inviteCodeDisplay.textContent = invitationCode;
+    regenerateBtn.classList.remove('hidden');
+  } else {
+    inviteSection.classList.add('hidden');
+  }
 
   socket.emit('room:join', { roomId });
 
@@ -290,10 +362,50 @@ async function createRoom() {
     document.getElementById('create-room-modal').classList.add('hidden');
     document.getElementById('create-room-form').reset();
     await loadRooms();
-    joinRoom(data.room._id, data.room.name);
+    joinRoom(data.room._id, data.room.name, data.room.invitationCode);
+    
+    alert(`Room created! Share this invitation code: ${data.room.invitationCode}`);
   } catch (error) {
     console.error('Failed to create room:', error);
     alert('Failed to create room');
+  }
+}
+
+async function deleteRoom(roomId) {
+  const token = localStorage.getItem('token');
+  
+  if (!confirm('Are you sure you want to delete this room? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/rooms/${roomId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+
+    if (currentRoomId === roomId) {
+      currentRoomId = null;
+      document.getElementById('current-room-name').textContent = 'Select a room';
+      document.getElementById('messages').innerHTML = '';
+      document.getElementById('message-input').disabled = true;
+      document.getElementById('send-btn').disabled = true;
+      document.getElementById('room-invite-section').classList.add('hidden');
+    }
+
+    await loadRooms();
+  } catch (error) {
+    console.error('Failed to delete room:', error);
+    alert('Failed to delete room');
   }
 }
 
@@ -311,4 +423,70 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+async function joinRoomByCode() {
+  const token = localStorage.getItem('token');
+  const invitationCode = document.getElementById('invitation-code').value.trim();
+
+  if (!invitationCode) {
+    alert('Please enter an invitation code');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/rooms/join`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ invitationCode })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+
+    document.getElementById('join-room-modal').classList.add('hidden');
+    document.getElementById('join-room-form').reset();
+    await loadRooms();
+    joinRoom(data.room._id, data.room.name, data.room.invitationCode);
+  } catch (error) {
+    console.error('Failed to join room:', error);
+    alert('Failed to join room');
+  }
+}
+
+async function regenerateInvitationCode() {
+  const token = localStorage.getItem('token');
+  
+  if (!confirm('This will regenerate a new invitation code. The old code will no longer work. Continue?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/rooms/${currentRoomId}/regenerate-code`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+
+    document.getElementById('invitation-code-display').textContent = data.invitationCode;
+    alert(`New invitation code: ${data.invitationCode}`);
+  } catch (error) {
+    console.error('Failed to regenerate invitation code:', error);
+    alert('Failed to regenerate invitation code');
+  }
 }
