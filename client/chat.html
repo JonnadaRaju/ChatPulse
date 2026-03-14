@@ -11,7 +11,10 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <h2>Rooms</h2>
-        <button id="create-room-btn" class="icon-btn">+</button>
+        <div class="header-buttons">
+          <button id="join-room-btn" class="icon-btn" title="Join Room">↵</button>
+          <button id="create-room-btn" class="icon-btn" title="Create Room">+</button>
+        </div>
       </div>
       <div id="rooms-list" class="rooms-list"></div>
     </aside>
@@ -21,6 +24,12 @@
         <div class="room-info">
           <h2 id="current-room-name">Select a room</h2>
           <span id="online-count" class="online-count"></span>
+        </div>
+        <div id="room-invite-section" class="room-invite-section hidden">
+          <span class="invite-label">Invite:</span>
+          <code id="invitation-code-display" class="invitation-code"></code>
+          <button id="copy-invite-btn" class="copy-btn" title="Copy">📋</button>
+          <button id="regenerate-invite-btn" class="copy-btn" title="Regenerate">🔄</button>
         </div>
         <button id="logout-btn" class="logout-btn">Logout</button>
       </header>
@@ -60,6 +69,19 @@
         <div class="modal-buttons">
           <button type="button" id="cancel-room-btn" class="cancel-btn">Cancel</button>
           <button type="submit" class="create-btn">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="join-room-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Join Room</h3>
+      <form id="join-room-form">
+        <input type="text" id="invitation-code" placeholder="Enter invitation code" required>
+        <div class="modal-buttons">
+          <button type="button" id="cancel-join-btn" class="cancel-btn">Cancel</button>
+          <button type="submit" class="create-btn">Join</button>
         </div>
       </form>
     </div>
