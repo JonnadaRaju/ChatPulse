@@ -43,13 +43,18 @@ const createRoom = async (req, res) => {
 
 const getRooms = async (req, res) => {
   try {
-    const rooms = await Room.find({ members: req.user._id })
+    const rooms = await Room.find()
       .populate('createdBy', 'username avatar _id')
       .populate('members', 'username avatar isOnline')
       .sort({ createdAt: -1 });
 
+    const roomsWithMembership = rooms.map(room => ({
+      ...room.toObject(),
+      isMember: room.members.some(m => m._id.toString() === req.user._id.toString())
+    }));
+
     res.status(200).json({
-      rooms,
+      rooms: roomsWithMembership,
       total: rooms.length
     });
   } catch (error) {
