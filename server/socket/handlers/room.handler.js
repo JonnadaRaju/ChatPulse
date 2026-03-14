@@ -10,9 +10,12 @@ const setupRoomHandlers = (io, socket, user) => {
         return;
       }
 
-      if (!room.members.includes(user._id)) {
-        room.members.push(user._id);
-        await room.save();
+      const userIdStr = user._id.toString();
+      const isMember = room.members.some(m => m.toString() === userIdStr);
+      
+      if (!isMember) {
+        socket.emit('room:error', { message: 'You are not a member of this room' });
+        return;
       }
 
       socket.join(roomId);

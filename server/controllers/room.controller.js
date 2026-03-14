@@ -75,9 +75,11 @@ const getRoomMessages = async (req, res) => {
       return res.status(404).json({ message: 'Room not found' });
     }
 
-    const isMember = room.members.some(m => m.toString() === req.user._id.toString());
-    if (!isMember && room.isPrivate) {
-      return res.status(403).json({ message: 'Access denied' });
+    const userIdStr = req.user._id.toString();
+    const isMember = room.members.some(m => m.toString() === userIdStr);
+    
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied. Join the room first.' });
     }
 
     const query = { room: roomId, isDeleted: false };
