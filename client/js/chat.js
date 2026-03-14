@@ -179,9 +179,9 @@ function renderRooms(rooms) {
     roomEl.dataset.isMember = room.isMember;
     
     const memberCount = room.members ? room.members.length : 0;
-    const creatorId = room.createdBy ? room.createdBy._id : room.createdBy;
+    const creatorId = room.createdBy ? (room.createdBy._id || room.createdBy) : null;
     const isCreator = creatorId && String(creatorId) === String(user.id);
-    const isMember = room.isMember;
+    const isMember = room.isMember || (room.members ? room.members.some(m => String(m._id || m) === String(user.id)) : false);
     
     roomEl.innerHTML = `
       <h3>${!isMember && !isCreator ? '🔒 ' : ''}${room.name}</h3>
