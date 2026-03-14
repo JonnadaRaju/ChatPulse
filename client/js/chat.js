@@ -136,11 +136,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   socket.on('user:online', (data) => {
-    updateUserOnlineStatus(data.userId, true);
+    addOnlineUser(data.userId, data.username);
   });
 
   socket.on('user:offline', (data) => {
-    updateUserOnlineStatus(data.userId, false);
+    removeOnlineUser(data.userId);
+  });
+
+  socket.on('users:online', (data) => {
+    data.users.forEach(user => {
+      addOnlineUser(user.userId, user.username);
+    });
   });
 });
 
@@ -170,20 +176,29 @@ function renderRooms(rooms) {
     roomEl.className = 'room-item';
     roomEl.dataset.roomId = room._id;
     roomEl.dataset.isCreator = String(room.createdBy?._id || room.createdBy) === String(user.id);
+    roomEl.dataset.isMember = room.isMember;
     
     const memberCount = room.members ? room.members.length : 0;
     const creatorId = room.createdBy ? room.createdBy._id : room.createdBy;
     const isCreator = creatorId && String(creatorId) === String(user.id);
+    const isMember = room.isMember;
     
     roomEl.innerHTML = `
-      <h3>${room.name}</h3>
+      <h3>${!isMember ? '🔒 ' : ''}${room.name}</h3>
       <p>${room.description || 'No description'} • ${memberCount} members</p>
       ${isCreator ? '<button class="delete-room-btn">Delete</button>' : ''}
     `;
 
     roomEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('delete-room-btn')) {
-        joinRoom(room._id, room.name, room.invitationCode);
+        if (!isMember) {
+          const code = prompt('Enter invitation code to join this room:');
+          if (code) {
+            joinRoomByCodeFromClick(room._id, room.name, code);
+          }
+        } else {
+          joinRoom(room._id, room.name, room.invitationCode);
+        }
       }
     });
 
@@ -419,10 +434,70 @@ function updateUserOnlineStatus(userId, isOnline) {
   }
 }
 
+function addOnlineUser(userId, username) {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (userId === user.id) return;
+
+  let userEl = document.querySelector(`[data-user-id="${userId}"]`);
+  if (!userEl) {
+    const usersEl = document.getElementById('online-users');
+    userEl = document.createElement('div');
+    userEl.className = 'online-user';
+    userEl.dataset.userId = userId;
+    userEl.innerHTML = `
+      <span class="online-user-name">${escapeHtml(username)}</span>
+      <span class="online-indicator"></span>
+    `;
+    usersEl.appendChild(userEl);
+  }
+  const indicator = userEl.querySelector('.online-indicator');
+  if (indicator) {
+    indicator.style.background = '#4caf50';
+  }
+}
+
+function removeOnlineUser(userId) {
+  const userEl = document.querySelector(`[data-user-id="${userId}"]`);
+  if (userEl) {
+    const indicator = userEl.querySelector('.online-indicator');
+    if (indicator) {
+      indicator.style.background = '#888';
+    }
+  }
+}
+
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+async function joinRoomByCodeFromClick(roomId, roomName, invitationCode) {
+  const token = localStorage.getItem('token');
+
+  try {
+    const response = await fetch(`${API_URL}/rooms/join`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ invitationCode })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message);
+      return;
+    }
+
+    await loadRooms();
+    joinRoom(data.room._id, data.room.name, data.room.invitationCode);
+  } catch (error) {
+    console.error('Failed to join room:', error);
+    alert('Failed to join room');
+  }
 }
 
 async function joinRoomByCode() {
