@@ -377,7 +377,7 @@ async function createRoom() {
     document.getElementById('create-room-modal').classList.add('hidden');
     document.getElementById('create-room-form').reset();
     await loadRooms();
-    joinRoom(data.room._id, data.room.name, data.room.invitationCode);
+    await joinRoom(data.room._id, data.room.name, data.room.invitationCode);
     
     alert(`Room created! Share this invitation code: ${data.room.invitationCode}`);
   } catch (error) {
@@ -493,7 +493,7 @@ async function joinRoomByCodeFromClick(roomId, roomName, invitationCode) {
     }
 
     await loadRooms();
-    joinRoom(data.room._id, data.room.name, data.room.invitationCode);
+    await joinRoom(data.room._id, data.room.name, data.room.invitationCode);
   } catch (error) {
     console.error('Failed to join room:', error);
     alert('Failed to join room');
@@ -529,7 +529,7 @@ async function joinRoomByCode() {
     document.getElementById('join-room-modal').classList.add('hidden');
     document.getElementById('join-room-form').reset();
     await loadRooms();
-    joinRoom(data.room._id, data.room.name, data.room.invitationCode);
+    await joinRoom(data.room._id, data.room.name, data.room.invitationCode);
   } catch (error) {
     console.error('Failed to join room:', error);
     alert('Failed to join room');
