@@ -184,14 +184,14 @@ function renderRooms(rooms) {
     const isMember = room.isMember;
     
     roomEl.innerHTML = `
-      <h3>${!isMember ? '🔒 ' : ''}${room.name}</h3>
+      <h3>${!isMember && !isCreator ? '🔒 ' : ''}${room.name}</h3>
       <p>${room.description || 'No description'} • ${memberCount} members</p>
       ${isCreator ? '<button class="delete-room-btn">Delete</button>' : ''}
     `;
 
     roomEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('delete-room-btn')) {
-        if (!isMember) {
+        if (!isMember && !isCreator) {
           const code = prompt('Enter invitation code to join this room:');
           if (code) {
             joinRoomByCodeFromClick(room._id, room.name, code);
