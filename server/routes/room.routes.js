@@ -25,4 +25,12 @@ router.get('/', roomController.getRooms);
 
 router.get('/:roomId/messages', roomController.getRoomMessages);
 
+router.delete('/:roomId', roomController.deleteRoom);
+
+router.post('/join', [
+  body('invitationCode').isLength({ min: 1 }).withMessage('Invitation code is required')
+], validateRequest, roomController.joinRoomByInvitation);
+
+router.post('/:roomId/regenerate-code', roomController.regenerateInvitationCode);
+
 module.exports = router;
